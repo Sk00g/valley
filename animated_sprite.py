@@ -1,41 +1,60 @@
 import pygame
 import pyganim
+from timer import Timer
 from vector import Vector
 
 
-# CONSTANTS
-POSE_PRE_PUNCH = 0
-POSE_PUNCH = 1
-POSE_CROUCH = 2
-POSE_DEAD = 3
-POSE_HIT = 4
-POSE_SPELL = 5
-POSE_STAND = 6
-POSE_WALK1 = 7
-POSE_WALK2 = 8
+class Animation:
+    WALK = "WALK"
+    ATTACK = "ATTACK"
+    DEATH = "DEATH"
+    DEATH2 = "DEATH2"
 
+# CONSTANTS
 FACING_LEFT = 0
 FACING_RIGHT = 1
 
 WALK_SPEED = 0.15
 WALK_ANIM_INTERVAL = 200  # ms
 MIN_MOVE_DISTANCE = 4
+SPRITE_SCALE = 1.3
 
+"""
+animations: {
+    Animation.WALK: [{"index": ..., "duration": ...}, {"index": ..., "duration": ...}, etc...],
+    Animation.ATTACK: {...}
+}
+"""
 
 class AnimatedSprite:
-    def __init__(self, source_file):
+    def __init__(self, source_file, **kwargs):
+        self.attack_hit_timeout = kwargs['attack_hit_timeout']
+        self.death_timeout = kwargs['death_timeout']
+        self.dead_index = kwargs['dead_index']
+        self.dead_index2 = kwargs['dead_index2']
+
         self._position = Vector(0, 0)
         self._target_position = Vector(0, 0)
         self._facing = FACING_LEFT
-        self._original_pose_images = pyganim.getImagesFromSpriteSheet(source_file, rows=2, cols=5)[0:9]
-        self._pose_images = [pygame.Surface((50, 50), pygame.SRCALPHA, 32)] * 9
-        self._current_pose = POSE_STAND
+        self._original_source_images = pyganim.getImagesFromSpriteSheet(source_file, rows=kwargs['rows'], cols=kwargs['cols'])
+        self._source_image_count = kwargs['rows'] * kwargs['cols']
+        self._animations = kwargs['animations']
+        self._current_animation = None
+        self._default_index = kwargs['default_index']
+        self._static_index = self._default_index
+        self.reset()
+
+        # Setup source image array
+        self._source_images = []
+        width, height = self._original_source_images[0].get_size()
+        for i in range(self._source_image_count):
+            self._source_images.append(pygame.Surface((width * SPRITE_SCALE, height * SPRITE_SCALE), pygame.SRCALPHA))
         self._render()
 
-        # For walking
-        self._time_since_walk_anim = 0
-        self._temp_anim_start = None
-        self._temp_anim_duration = 0
+        # For animation
+        self._animation_timer = 0
+        self._animation_step = 0
+        self._animation_looping = False
 
         # For auto-slide
         self._slide_target = None
@@ -50,18 +69,34 @@ class AnimatedSprite:
 
     # ----- PRIVATE -----
     def _render(self):
-        for i in range(9):
-            self._pose_images[i] = pygame.transform.scale2x(self._original_pose_images[i])
+        for i in range(self._source_image_count):
+            self._source_images[i] = pygame.transform.scale(self._original_source_images[i], self._source_images[i].get_size())
             if self._facing == FACING_RIGHT:
-                self._pose_images[i] = pygame.transform.flip(self._pose_images[i], True, False)
+                self._source_images[i] = pygame.transform.flip(self._source_images[i], True, False)
 
     # ----- PUBLIC -----
+    def reset(self):
+        self.set_static_index(self._default_index)
+
+    def start_animation(self, anim_type, looping=False):
+        if not anim_type in self._animations:
+            raise ValueError("This sprite doesn't support animation '%s'" % anim_type)
+
+        self._animation_timer = 0
+        self._animation_step = 0
+        self._animation_looping = looping
+        self._current_animation = anim_type
+        self._static_index = None
+
+        if anim_type == Animation.DEATH:
+            Timer.create_new(Timer(self.death_timeout, lambda: self.set_static_index(self.dead_index)))
+
+
     def move(self, target_pos):
         self._target_position = Vector(target_pos)
-        self.set_facing(FACING_LEFT if target_pos[0] < self._position[0] else FACING_RIGHT)
-        if self._current_pose != POSE_WALK2 and self._current_pose != POSE_WALK2:
-            self.set_pose(POSE_WALK1)
-            self._time_since_walk_anim = 0
+        self.set_facing(FACING_LEFT if target_pos[0] > self._position[0] else FACING_RIGHT)
+        if self._current_animation != Animation.WALK:
+            self.start_animation(Animation.WALK, True)
 
     def slide(self, vector: Vector, duration_ms):
         if self._target_position != self._position:
@@ -77,13 +112,14 @@ class AnimatedSprite:
         self._slide_interval = interval_ms
         self._slide_time_since_last = 0
 
-    def get_pose(self):
-        return self._current_pose
+    def get_animation(self):
+        return self._current_animation
 
-    def set_pose(self, new_pose, duration=None):
-        self._current_pose = new_pose
-        self._temp_anim_start = pygame.time.get_ticks() if duration else None
-        self._temp_anim_duration = duration
+    def set_static_index(self, index):
+        self._static_index = index
+
+        if self._current_animation:
+            self._current_animation = None
 
     def get_facing(self):
         return self._facing
@@ -104,6 +140,20 @@ class AnimatedSprite:
         self._target_position = self._position
 
     def update(self, elapsed_ms):
+        # Update animation
+        if self._current_animation:
+            anim = self._animations[self._current_animation]
+            self._animation_timer += elapsed_ms
+            if self._animation_timer >= anim[self._animation_step]['duration']:
+                self._animation_timer = 0
+                self._animation_step += 1
+
+                if self._animation_step >= len(anim):
+                    if self._animation_looping:
+                        self._animation_step = 0
+                    else:
+                        self.reset()
+
         # Handle sliding
         if self._slide_target:
             pct_time = elapsed_ms / self._slide_duration
@@ -123,29 +173,22 @@ class AnimatedSprite:
                 if len(self._slide_list) == 0:
                     self._slide_list = None
 
-        # Handled timed animation
-        if self._temp_anim_start:
-            if pygame.time.get_ticks() - self._temp_anim_start > self._temp_anim_duration:
-                self.set_pose(POSE_STAND)
-
         if self._target_position != self._position:
-            # Handle walk animation
-            self._time_since_walk_anim += elapsed_ms
-            if self._time_since_walk_anim > WALK_ANIM_INTERVAL:
-                self.set_pose(POSE_WALK2 if self.get_pose() == POSE_WALK1 else POSE_WALK1)
-                self._time_since_walk_anim = 0
-
             # Move the sprite
             if (self._target_position - self._position).norm() < MIN_MOVE_DISTANCE:
                 self._position = self._target_position
-                self.set_pose(POSE_STAND)
+                self.reset()
             else:
                 dist = elapsed_ms * WALK_SPEED
                 dir = (self._target_position - self._position).normalize()
                 self._position += dir * dist
 
     def draw(self, screen: pygame.Surface):
-        screen.blit(self._pose_images[self._current_pose], self.get_position())
+        if self._static_index:
+            screen.blit(self._source_images[self._static_index], self.get_position())
+        else:
+            source_index = self._animations[self._current_animation][self._animation_step]['index']
+            screen.blit(self._source_images[source_index], self.get_position())
 
 
 
