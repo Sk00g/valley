@@ -1,0 +1,57 @@
+perlin noise (import noise):
+- use a random seed as base= to actually get random
+- each call to noise.pnoise2() returns a float value between -1 and 1
+- scale determines a sort of 'zoom' effect. If you want less variety, higher zoom
+- octaves is sort of the different 'levels', sounds like typically used for different terrain types. Kind of works like sharpening
+- persistence determines how much each octave contributes? I don't get it. Apparently default of less than 1 is common
+- lacunarity of 1 means each octave will have the same level of detail, this is probably what we want....
+    apparently 2 is a common default
+
+
+In-Game Overworld:
+* using perlin noise to generate the basic tiles and terrain objects
+* TILES: grass / path / grass-path-edge / grass-texture / path-texture / dirt / dirt-texture /
+         cliff-edge / cliff / water-cliff
+         water / water-small-wave / water-large-wave / water-rock
+* TERRAIN: bush / tree-large-green,brown / rock-small-green,brown / tree-small-green,brown,pink / stump / rock-large
+* Neutral buildings: mine (WC2 mine) / arcane well (WC2 rune-rocks)
+* City: WC2 buildings. Central keep, towers terrain fence around it? buildings inside as you grow town
+* Village: WC2 lumber yard building, surrounded by little farms, no fence
+
+
+import noise
+from datetime import datetime
+
+
+def main():
+    print('noise introduction')
+
+    size = (64, 64)
+    scale = 50.0
+    octaves = 5
+    persistence = 0.5
+    lacunarity = 2.0
+
+    world = [0] * (size[0] * size[1])
+    for i in range(size[0]):
+        for j in range(size[1]):
+            output = noise.pnoise2(i / scale,
+                                   j / scale,
+                                   octaves=octaves,
+                                   persistence=persistence,
+                                   lacunarity=lacunarity,
+                                   repeatx=64,
+                                   repeaty=64,
+                                   base=int(datetime.now().second))
+            # if i == 0:
+            #     print(output)
+            world[j + (i * size[0])] = output
+
+    print('min: %s' % min(world))
+    print('max: %s' % max(world))
+
+
+    return 0
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,65 @@
+Major design decisions:
+Procedural generation format
+Tech / unit / buildings content
+HUD
+Scouting process
+Battle background
+
+Overview:
+ * 15 - 30 minute instances
+ * No Multiplayer (no AI, low RNG)
+ * Procedural map generation (low content needs)
+ * Economy and city building have meaningful choices
+ * Limited resources / shared resources (battle to control resource areas)
+ * Build towards high-level creatures is rewarding
+ * x1 race to start (x3 for full game)
+ * HOMM style armies, but no heroes
+
+Terrain / Map:
+ - Trees / rocks / etc. which are non-pathable
+  - dirt / grass tiles
+ - water / bridge for map control and boundaries
+ - Arcane Wells, when captured / established produces Elixir
+
+Resources:
+ - mines produce ore
+ - arcane wells produce elixir
+ - cities and villages produce gold
+ - can leave guard armies at mines / villages / cities / arcane wells at no added cost
+
+City Building:
+ - build time in days (turns)
+ - cities can be attacked, defenders bonus (wall battleground in favor of defender?)
+ - no separate scene for cities, they are large graphically and actually contain the buildings you can build
+ - buildings unlock unit types, increase recruits, increase gold, elixir resource progression, increase defense, increase sight?
+    add army and/or mine bonuses?
+
+Army Assembly:
+ - units are always in either an 'army' or a city
+ - it is expensive to build an 'army' for transporting units / fighting / exploring / claiming mines
+ - no limit on types of unit within an army
+ - have recruits of main race trickle in every day, these can be trained into main units
+ - Beast / special units have their own 'recruit' population and have to be trained / hired
+ - armies can merge / share freely like HOMM
+ - no neutral armies (?)
+
+Combat:
+ - number of units in stack (HOMM)
+ - square-grid based - stats: speed / damage / armor / life
+ - three types of attacks: range / melee / magic (bonus triad?)
+
+Overworld Movement:
+ - armies can take a day to switch 'modes' between 'caravan' (faster but vulnerable) and 'march' (ready for battle, but slower)
+ - fog of war and exploration, AoE2 style
+ - attack / move / interact / etc. is done on overworld grid, HOMM style
+ - terrain like trees / rocks / mountains is blocking obviously
+ - army has set move per turn based on army type
+
+Graphics:
+ - WC3 (WC2) for icons (wc3c.net, hiveworkshop.com for custom)
+ - Pita or FBB (temp) terrain and map tiles, cities
+ - FBB overworld armies (WC2)
+ - FBB battle sprites (WC2 / HOMM2)
+ - Generic pixel art SFX
+ - designating mines / arcane wells / cities should be team color
+ - HUD -> found a cool GUI set here: https://www.google.ca/search?q=pixel+fantasy+gui&client=ms-android-samsung&prmd=inv&source=lnms&tbm=isch&sa=X&ved=2ahUKEwi1iYHSmJLfAhXFHDQIHfNkC4oQ_AUoAXoECA4QAQ&biw=360&bih=560#imgrc=O6Qm8FUp-VmwJM:

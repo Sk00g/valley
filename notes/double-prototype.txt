@@ -1,0 +1,20 @@
+I'm wondering if we should have a more attainable prototype... Basically a prototype to try and make fun before we actually build the first iteration of the game with proper design in mind
+
+- Overworld-focus
+- Zelda tiles, fixed-width grid map with grass-only theme. Procedural generate map
+- Explore mechanic but not FoW
+- WC2 city + neutral mines / wells
+- Battle is still instanced, but no grid movement. Just separate out soldiers in (2) lines and choose target
+    * can't choose back line until both front lines in front are dead
+    * two back lines three front
+    * Battles are either open grass or defend city
+- Max 5 units in army
+- armies built from cities
+- simplified cities -> recruits, 5 dwellings, gold tier x3, buy army, special unit, elixir progression
+- gold (village) / ore (mine) / elixir (well), capture these and they produce
+- combat:
+    * life / damage / armor / resist / speed / range+melee+magic / stack size
+- armies have set vision of ~5 tiles
+- city building still meaningful
+- pick simple set of GUI controls, don't elaborate even if it's inconvenient. Use text entry
+

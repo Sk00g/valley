@@ -1,0 +1,54 @@
+Three-phase combat system:
+
+1. Engagement phase
+2. Order phase
+3. Execution phase
+
+Order options:      Move | Attack-Move (cell target) | Defend
+
+Stats:              Life | Speed | Damage | Armor
+
+
+* Each round each player has maximum of three orders, regardless of troop numbers
+* Each unit can only receive one order per turn
+* Combat is done in an open 8 x 10 grid
+* Orders are executed one action at a time, order decided by defend-command > speed > attacker > cell Y > cell X
+* Move-paths are calculated at the time of execution, not when the order is given
+* Flank bonus is natural in that a unit can only deal damage to one unit at a time. So free hits
+
+
+Potential situations in execution phase:
+* Defend reduces damage for next engage by 30%
+
+* Move moves to new cell without incident
+* Target cell is not within range > travel speed distance along path
+* Target cell is unreachable > take no action
+
+* Move towards and attack unit at target cell
+* Target cell is not within range (speed - 1) > travel speed distance along path
+* Target cell is unreachable > find direct path to target > step backwards through path cells > find one that has valid path > travel speed distance along path
+* Target cell is unreachable > direct path cells are all unreachable > no action
+
+
+Miscellaneous:
+* If target is currently engaged:
+    - defend is not an order option
+    - attack move to any engaged enemies
+    - move or attack move 'disengages', which reduces their next attack damage by 50% and makes them vulnerable by 30%
+    - these factors do NOT apply if the previous Engagement Phase saw one of the engagees get die
+* Engage damage is calculated during Engagement Phase, and dealt out before order phase
+* Damage is dealt when entering an engagement (or flank), AND during each engagement phase (otherwise the animations won't make sense. attack-moves would have to wait for entire execution phase to end before doing their animation)
+
+
+Issues:
+* Animations for engagement might appear strange if we want both parties to deal damage at the same time. What happens if the slower unit (whose animation triggers second) dies? Do they still deal damage? Do we show their attack animation or death animation? Keep in mind we can't have both engaged units do their attack animation at the same time, this would ruin the hitbox animations unless we built them all this way, in which case a flank animation wouldn't look right). What animations play if both units attack and die? Alternative could be to have engagements deal damage one after the other, again based off speed. However this adds complications for flank scenarios... Do flankers attack before direct engagees? What if a flanker is flanked? Perhaps the entire engagement phase should also be governed by the execution phase's defend-command > speed > attacker > cell Y > cell X, this would avoid flanking issues, but put a significant value on speed stat.
+
+* Another animation question is how to proceed through the 'Engagement Phase'? Do we animate half the units at once, then the other half? Do we animate the units one by one? Would this be too slow? Would animating more than one unit at a time be too much too fast for the player to see and understand? Do we animate with a set 500ms between animation starts to try and balance this?
+
+
+
+
+
+
+
+

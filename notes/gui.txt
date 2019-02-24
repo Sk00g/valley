@@ -1,0 +1,16 @@
+Elements:
+- primitives (line / rectangle / circle)
+- panel (4 corners and variable size)
+- exit button
+- scrolling panel
+- dynamic panel (location and size)
+- text button
+- icon button
+- color button
+- arrow buttons (increment / decrement)
+- text increment / number increment
+- progress bar red, orange, green, sea green, light blue, dark green, green
+- button grids (option grids)
+- button line (option lines)
+
+Icons:

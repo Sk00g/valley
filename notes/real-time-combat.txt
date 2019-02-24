@@ -1,0 +1,60 @@
+Units:
+Life / Armor / Damage / Speed (equivalent to move tiles)
+
+Combat:
+* 2 phases, orders and execution
+
+Order Phase:
+* each player has 3 orders per turn
+* potential actions are Shoot (ranged) / move / defend / attack move
+
+Shoot:
+- Select unit to shoot at, blocked by units in front (blocking algorithm??)
+- Fires once turn is reached, at that point blocking is calculated
+
+Move:
+- Select tile within range to move to
+- Can walk through allies
+- Cannot walk through enemies
+- If blocked by enemy
+    * if destination is still within range, take alternate route
+    * if destination is not in range, pathfind as close as possible
+    * if all movement is blocked, take no action (LOST ACTION!)
+
+Defend:
+- Gain defender's bonus for duration of next engagement -50% damage, +25% damage
+- No movement obviously
+- Defend's are non-action's, meaning the bonus is given immediately upon defend order. In actual turn order just the animation plays
+
+Attack-Move:
+- Attack move toward a target tile (tile may be occupied)
+- allies don't block
+- find direct route (ignoring occupied cells) to 'attack tile':
+    * if target ends on ally, search for surrounding + reachable cells. If none available. Back-track on route and repeat
+        # If allies block entire path and no suitable replacements are found, consider current tile the 'attack tile'
+    * if target ends on enemy, search for surrounding + reachable tiles to engage from
+        # if no tiles are found, backtrack on route for suitable 'attack tile'
+    * starting from current cell -> if target path is blocked by enemy, search for suitable cell to engage enemy from   
+        # if none is found -> ??
+    * If direct path is blocked by enemy but we COULD reach the target tile, which takes priority? Farther enemy?
+    * If the target tile is unreachable, do we do a breadth first search to find an attackable enemy?
+    * What if path to target is blocked by enemy, but there's no suitable cell to engage from? do nothing?
+    * What if target cell is free, but not adjacent to enemies, but we pass enemies on the way to target cell?
+    * What logic if there is no valid path to target? Find direct and check for enemies?
+    * Should the target cell be considered directional or specific?
+        # directional might be simpler to implement, but will feel quite random for the player. Might as well just have generic
+            'move forward' button
+        # specific will have a ton of different cases to work through, but might make player feel more in control
+
+Engagements:
+- At the start of each 'execution phase', all units who are currently in an engagement will deal their damage
+- If a unit in an engage receives a move command, they will be 'vulnerable' for the rest of that turn (+50% damage?)
+- All above considerations for 'attack-move' could be applied differently for a unit who was previously engaged:
+    * for example, if you disengage but try to attack-move, but then the move is unavailable, what happens?
+    * What the path is unavailable but an adjacent enemy is blocking the path? Just switch targets? confusing because the   
+            unit it was previously engaged too should still attack, but logic says the other unit broke the engagement...
+    * directional could still maybe work here except the previously engaged unit is not an option for the target acquisition algorithm
+    * a specific-target system might make for some weird results if the pathway is blocked, or the target cell is unavailable due to allies
+    
+
+
