@@ -1,0 +1,9 @@
+{
+  "footknight": {
+    "life": 100,
+    "speed": 10,
+    "armor": 12,
+    "power": 35,
+    "accuracy": 0.85
+  }
+}

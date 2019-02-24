@@ -10,9 +10,9 @@ class Animation:
     DEATH = "DEATH"
     DEATH2 = "DEATH2"
 
-# CONSTANTS
-FACING_LEFT = 0
-FACING_RIGHT = 1
+class Facing:
+    LEFT = 0
+    RIGHT = 1
 
 WALK_SPEED = 0.15
 WALK_ANIM_INTERVAL = 200  # ms
@@ -35,7 +35,7 @@ class AnimatedSprite:
 
         self._position = Vector(0, 0)
         self._target_position = Vector(0, 0)
-        self._facing = FACING_LEFT
+        self._facing = Facing.LEFT
         self._original_source_images = pyganim.getImagesFromSpriteSheet(source_file, rows=kwargs['rows'], cols=kwargs['cols'])
         self._source_image_count = kwargs['rows'] * kwargs['cols']
         self._animations = kwargs['animations']
@@ -71,7 +71,7 @@ class AnimatedSprite:
     def _render(self):
         for i in range(self._source_image_count):
             self._source_images[i] = pygame.transform.scale(self._original_source_images[i], self._source_images[i].get_size())
-            if self._facing == FACING_RIGHT:
+            if self._facing == Facing.LEFT:
                 self._source_images[i] = pygame.transform.flip(self._source_images[i], True, False)
 
     # ----- PUBLIC -----
@@ -94,7 +94,7 @@ class AnimatedSprite:
 
     def move(self, target_pos):
         self._target_position = Vector(target_pos)
-        self.set_facing(FACING_LEFT if target_pos[0] > self._position[0] else FACING_RIGHT)
+        self.set_facing(Facing.LEFT if target_pos[0] < self._position[0] else Facing.RIGHT)
         if self._current_animation != Animation.WALK:
             self.start_animation(Animation.WALK, True)
 

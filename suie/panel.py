@@ -31,4 +31,5 @@ class Panel(suie.Element):
 
     def draw(self, screen: pygame.Surface):
         for child in self._child_list:
-            child.draw(screen)
+            if child.visible:
+                child.draw(screen)

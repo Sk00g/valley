@@ -4,7 +4,14 @@ from vector import Vector
 from cell import Cell
 from collections import deque
 
+"""
+cell_count = (wide, high))
+"""
 # CONSTANTS
+class CellColor:
+    RED = (200, 50, 50, 120)
+    GREEN = (50, 200, 50, 120)
+    BLUE = (50, 50, 200, 120)
 
 
 # blocked_cells parameter should be a list of tuples with the coordinates of blocked cells
@@ -43,7 +50,7 @@ class Grid:
                     cell.set_fill_color(fill_color)
         else:
             for coords in coords_list:
-                self[(coords)].set_fill_color(fill_color)
+                self[coords].set_fill_color(fill_color)
 
     # Important pathfinding algorithm, basically an A* without heuristic, return list of cells in order
     def find_path(self, start_cell, end_cell):
@@ -89,7 +96,7 @@ class Grid:
         for row in self._cell_list:
             for cell in row:
                 if cell.occupant or not cell.pathable:
-                    cell.set_fill_color((200, 50, 50, 120))
+                    cell.set_fill_color(CellColor.BLUE)
                 else:
-                    cell.set_fill_color((50, 50, 200, 120))
+                    cell.set_fill_color(CellColor.GREEN)
 
