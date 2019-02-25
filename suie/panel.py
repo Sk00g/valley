@@ -33,3 +33,4 @@ class Panel(suie.Element):
         for child in self._child_list:
             if child.visible:
                 child.draw(screen)
+

@@ -12,6 +12,7 @@ class CellColor:
     RED = (200, 50, 50, 120)
     GREEN = (50, 200, 50, 120)
     BLUE = (50, 50, 200, 120)
+    SHADOW = (0, 0, 0, 50)
 
 
 # blocked_cells parameter should be a list of tuples with the coordinates of blocked cells

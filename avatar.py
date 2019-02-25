@@ -20,33 +20,45 @@ class AvatarState:
 
 
 class Avatar:
-    def __init__(self, animated_sprite: AnimatedSprite, cell: Cell, stack_count, **kwargs):
+    def __init__(self, animated_sprite: AnimatedSprite, stack_count, cell: Cell=None, **kwargs):
         self.state = AvatarState.READY
         self.sprite = animated_sprite
         self.armor = kwargs['armor']
         self.power = kwargs['power']
         self.speed = kwargs['speed']
-        self.max_life = kwargs['life'] * stack_count
+        self.unit_life = kwargs['life']
+        self.max_life = self.unit_life * stack_count
         self.accuracy = kwargs['accuracy']
+        self.icon_index = kwargs['icon_index']
 
-        self.cell = cell
-        cell.occupant = self
-        self.sprite.set_position(Vector(self.cell.get_position()) + UNIT_CELL_OFFSET)
+        self.cell = None
+        if cell:
+            self.set_cell(cell)
 
         self._current_life = self.max_life
-        self._stack_life = kwargs['life']
 
         self._blood_sfx = None
 
         border = suie.Border((0, 0), (24, 24))
         border.visible = False
-        self._stack_shadow = suie.Label((2, 2), str(stack_count), 18, color=(0, 0, 0, 100))
-        self._stack_number = suie.Label((0, 0), str(stack_count), 18, color=(120, 255, 120, 255))
+        self._stack_shadow = suie.Label((2, 2), str(stack_count), 10, color=(0, 0, 0, 100))
+        self._stack_number = suie.Label((0, 0), str(stack_count), 10, color=(120, 255, 120, 255))
         self._stack_panel = suie.Panel(self.sprite.get_position() + STACK_TEXT_OFFSET, (24, 24),
                                        [border, self._stack_shadow, self._stack_number])
 
+    def set_cell(self, new_cell: Cell):
+        if new_cell.occupant:
+            raise Exception("Cell is already occupied!")
+
+        if self.cell:
+            self.cell.occupant = None
+
+        self.cell = new_cell
+        new_cell.occupant = self
+        self.sprite.set_position(Vector(self.cell.get_position()) + UNIT_CELL_OFFSET)
+
     def get_stack_count(self):
-        return (self._current_life + 1) // self._stack_life + 1
+        return (self._current_life - 1) // self.unit_life + 1
 
     def die(self):
         self._current_life = 0

@@ -4,7 +4,7 @@ from vector import Vector
 
 
 # CONSTANTS
-FLOAT_FONT_SIZE = 18
+FLOAT_FONT_SIZE = 10
 FLOAT_DURATION = 1500  # ms
 FLOAT_DISTANCE = 40  # total pixels travelled from origin
 DEFAULT_FLOAT_DIR = Vector(1, -1).normalize()  # direction of travel

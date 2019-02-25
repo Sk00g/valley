@@ -49,6 +49,9 @@ class ProgressBar(suie.Element):
                              BAR_EMPTY_RECT.height))
         self._image = pygame.transform.scale(full_image, (self.size[0], self.size[1]))
 
+    def get_fill(self):
+        return self._target_fill
+
     def set_fill(self, fill_pct):
         self._target_fill = fill_pct
         self._render()

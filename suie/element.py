@@ -11,7 +11,7 @@ class Element:
     def add_panel(self, new_host):
         new_host.add_child(self)
 
-    # Probably shouldn't mess with this in child classes, use recursion for multi-panel
+    # Probably shouldn't mess with this in child classes
     def _get_final_position(self):
         if self._host_panel:
             hpos = self._host_panel._get_final_position()

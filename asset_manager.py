@@ -10,7 +10,6 @@ import json
 __image_dict = {}
 __font_dict = {}
 
-
 def load_image(file_path: str, color_key=None):
     if file_path in __image_dict:
         return __image_dict[file_path]
@@ -30,7 +29,6 @@ def load_image(file_path: str, color_key=None):
 
     __image_dict[file_path] = image
     return image
-
 
 def load_font(font_name: str, size: int):
     if (font_name, size) in __font_dict:

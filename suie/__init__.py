@@ -7,11 +7,14 @@ from suie.border import Border
 from suie.text_button import TextButton
 from suie.image_button import ImageButton
 from suie.progress_bar import *
+from suie.avatar_icon import AvatarIcon
 
 pygame.init()
 
 # CONSTANTS
 SOURCE_IMAGE = None
+SCREEN_WIDTH = 840
+SCREEN_HEIGHT = 600
 
 # Global variables
 default_font_type = 'emulogic'
