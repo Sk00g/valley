@@ -24,6 +24,7 @@ class AvatarIcon(suie.Panel):
         self.action = suie.Label((AvatarIcon.WIDTH - 17, 8), "A", font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.ACTION_COLOR)
         self.power = suie.Label((AvatarIcon.WIDTH - 22, 28), str(avatar.power), font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.POWER_COLOR)
         self.stack = suie.Label((AvatarIcon.WIDTH - 22, 48), str(avatar.get_stack_count()), font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.STACK_COLOR)
+        self.shadow = suie.Rectangle((0, 0), (AvatarIcon.WIDTH + 6, AvatarIcon.HEIGHT + 6), (0, 0, 0, 100))
 
         self.add_child(border)
         self.add_child(icon)
@@ -31,9 +32,13 @@ class AvatarIcon(suie.Panel):
         self.add_child(self.action)
         self.add_child(self.power)
         self.add_child(self.stack)
+        self.add_child(self.shadow)
 
     def highlight(self, flag: bool):
-        pass
+        self.shadow.visible = not flag
+
+    def get_avatar(self):
+        return self._avatar
 
     def set_action(self, action):
         self.action.set_text(action)
@@ -44,3 +49,4 @@ class AvatarIcon(suie.Panel):
         self.stack.set_text(str(self._avatar.get_stack_count()))
 
         super().update(event_list)
+

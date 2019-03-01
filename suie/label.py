@@ -1,7 +1,8 @@
 # Represents a read-only piece of text
-from pygame import Rect, Surface
+import sys
 import suie
 import asset_manager
+from pygame import Rect, Surface
 
 
 class Label(suie.Element):
@@ -17,7 +18,7 @@ class Label(suie.Element):
 
     # Generates the appropriate surface (and rect) based on self properties
     def _render(self):
-        new_font = asset_manager.load_font(suie.default_font_type, self._size)
+        new_font = asset_manager.load_font(suie.default_font_type, self._size if sys.platform == "win32" else self._size + 10)
         self.surface = new_font.render(self._text, False, self._color)
 
     # Return the size and location in a Rect object

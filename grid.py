@@ -10,9 +10,15 @@ cell_count = (wide, high))
 # CONSTANTS
 class CellColor:
     RED = (200, 50, 50, 120)
+    RED_HIGHLIGHT = (255, 150, 150, 255)
+    ORANGE = (200, 150, 0, 120)
+    ORANGE_HIGHLIGHT = (255, 185, 40, 255)
     GREEN = (50, 200, 50, 120)
+    GREEN_HIGHLIGHT = (150, 255, 150, 255)
     BLUE = (50, 50, 200, 120)
+    BLUE_HIGHLIGHT = (150, 150, 255, 255)
     SHADOW = (0, 0, 0, 50)
+    SHADOW_HIGHLIGHT = (50, 50, 50, 100)
 
 
 # blocked_cells parameter should be a list of tuples with the coordinates of blocked cells

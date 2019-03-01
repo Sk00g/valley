@@ -17,8 +17,8 @@ class ImageButton(suie.Element):
         self.icon = suie.Image(image, position, size, source_rect)
         self._callback = callback
         self._state = BTN_STATE_DEFAULT
-        self._highlight_surface = pygame.Surface(size=size)
-        self._pressed_surface = pygame.Surface(size=size)
+        self._highlight_surface = pygame.Surface(size, pygame.SRCALPHA, 32)
+        self._pressed_surface = pygame.Surface(size, pygame.SRCALPHA, 32)
 
         # Setup three surfaces
         self._render()
@@ -69,12 +69,12 @@ class ImageButton(suie.Element):
             self.icon.draw(screen)
         elif self._state == BTN_STATE_MOUSEOVER:
             self.icon.draw(screen)
-            screen.blit(self._highlight_surface, self._get_final_position(), special_flags=pygame.BLEND_ADD)
+            screen.blit(self._highlight_surface, self._get_final_position())
         elif self._state == BTN_STATE_PRESSED:
             self.icon.set_position((self.icon.get_position()[0] + 1,
                                    self.icon.get_position()[1] + 2))
             self.icon.draw(screen)
             self.icon.set_position((self.icon.get_position()[0] - 1,
                                    self.icon.get_position()[1] - 2))
-            screen.blit(self._pressed_surface, self._get_final_position(), special_flags=pygame.BLEND_ADD)
+            screen.blit(self._pressed_surface, self._get_final_position())
 

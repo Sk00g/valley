@@ -9,6 +9,7 @@ from floating_text import FloatingText
 from animated_sprite import Animation, Facing
 from vector import Vector
 from grid import Grid, CellColor, Cell
+from sfx import SFX
 from .game_scene import GameScene
 from pygame.locals import *
 
@@ -19,12 +20,15 @@ class BattlePhase:
     EXECUTION = "Execution"
     WAITING = "Waiting"
 
+ARROW_OFFSET = (4, -50)
+
 
 class BattleScene(GameScene):
     def __init__(self):
         GameScene.__init__(self)
 
         self.background = suie.Image(asset_manager.load_image('wcBattleBackground.png'), (0, 0))
+        self.selection_arrow = SFX('assets/ui/rotatingArrow.png', (7, 2), (40, 40), (0, 0), 0, 13, True, frame_speed=80)
 
         self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 100), (6, 6))
 
@@ -38,8 +42,13 @@ class BattleScene(GameScene):
 
         self.current_phase = BattlePhase.ORDER
         self.active = "left"
-        self.turn_count = 1
+        self.turn_count = 0
+
         self.avatar_icons = []
+        self.action_icons = []
+
+        self.selected_avatar = None
+        self.hovered_avatar = None
 
         self._setup_panels()
         self._start_turn('left')
@@ -58,6 +67,28 @@ class BattleScene(GameScene):
             self.avatar_icons.append(suie.AvatarIcon((i * (suie.AvatarIcon.WIDTH + 2), 0), active_group[i]))
             self.lineup_panel.add_child(self.avatar_icons[i])
 
+        for icon in self.action_icons:
+            self.action_panel.remove_child(icon)
+        self.action_icons.clear()
+
+        if self.current_phase in [BattlePhase.ORDER, BattlePhase.TARGET] and self.selected_avatar:
+            self.action_icons.append(suie.ActionIcon((0, 0),
+                                                     lambda: self._select_action('attack'),
+                                                     "A", 116))
+            self.action_icons.append(suie.ActionIcon((suie.ActionIcon.WIDTH + 2, 0),
+                                                     lambda: self._select_action('defend'),
+                                                     "D", 164))
+            self.action_icons.append(suie.ActionIcon(((suie.ActionIcon.WIDTH + 2) * 2, 0),
+                                                     lambda: self._select_action('next'),
+                                                     "N", 170))
+            self.action_icons.append(suie.ActionIcon(((suie.ActionIcon.WIDTH + 2) * 3, 0),
+                                                     lambda: self._select_action('skip'),
+                                                     "S", 91))
+
+        for icon in self.action_icons:
+            self.action_panel.add_child(icon)
+
+
     def _start_turn(self, who):
         self.active = who
         if who == "left":
@@ -72,8 +103,7 @@ class BattleScene(GameScene):
         border = suie.Border((0, 0), (80, 80))
         self.target_panel = suie.Panel((suie.SCREEN_WIDTH - 85, suie.SCREEN_HEIGHT - 85), (80, 80), [border])
 
-        border = suie.Border((0, 0), (320, 80))
-        self.action_panel = suie.Panel((375, suie.SCREEN_HEIGHT - 85), (320, 80), [border])
+        self.action_panel = suie.Panel((375, suie.SCREEN_HEIGHT - 85), (320, 80))
 
         border = suie.Border((0, 0), (600, 20))
         self.info_label = suie.Label((10, 6),
@@ -116,36 +146,102 @@ class BattleScene(GameScene):
         self._lineup_units(self.left_units, 0)
         self._lineup_units(self.right_units, 5)
 
+        for unit in self.left_units + self.right_units:
+            unit.cell.set_fill_color(CellColor.SHADOW)
 
     def cleanup(self):
         pass
+
+    def _select_action(self, action):
+        print('selected action %s' % action)
+
+    def _hover_avatar(self, avatar, flag: bool):
+        if flag and not self.hovered_avatar:
+            self.hovered_avatar = avatar
+
+            if avatar == self.selected_avatar:
+                return
+
+            active_units = self.left_units if self.active == "left" else self.right_units
+
+            if self.current_phase == BattlePhase.ORDER:
+                color = CellColor.BLUE if avatar in active_units else CellColor.RED
+                bcolor = CellColor.BLUE_HIGHLIGHT if avatar in active_units else CellColor.SHADOW_HIGHLIGHT
+            elif self.current_phase == BattlePhase.TARGET:
+                color = CellColor.GREEN if avatar in active_units else CellColor.RED
+                bcolor = CellColor.GREEN_HIGHLIGHT if avatar in active_units else CellColor.RED_HIGHLIGHT
+            elif self.current_phase in [BattlePhase.WAITING, BattlePhase.EXECUTION]:
+                color, bcolor = CellColor.SHADOW, CellColor.SHADOW_HIGHLIGHT
+
+            avatar.cell.set_fill_color(color)
+            avatar.cell.set_border_color(bcolor)
+        elif not flag:
+            self.hovered_avatar = None
+
+            if avatar == self.selected_avatar:
+                return
+
+            avatar.cell.set_fill_color(CellColor.SHADOW)
+            avatar.cell.set_border_color(None)
+
+    def _clear_selection(self):
+        if self.selected_avatar:
+            self.selected_avatar.cell.set_fill_color(CellColor.SHADOW)
+            self.selected_avatar.cell.set_border_color(None)
+            for icon in [i for i in self.avatar_icons if i.get_avatar() == self.selected_avatar]:
+                icon.highlight(False)
+            self._update_panels()
+        self.selected_avatar = None
+
+    def _select_avatar(self, avatar):
+        print('select %s' % avatar.get_stack_count())
+        active_units = self.left_units if self.active == "left" else self.right_units
+
+        if self.current_phase == BattlePhase.ORDER:
+            if avatar in active_units:
+                self._clear_selection()
+
+                self.selected_avatar = avatar
+                avatar.cell.set_fill_color(CellColor.ORANGE)
+                avatar.cell.set_border_color(CellColor.ORANGE_HIGHLIGHT)
+                for icon in [i for i in self.avatar_icons if i.get_avatar() == avatar]:
+                    icon.highlight(True)
+                self.selection_arrow.position = (avatar.sprite.get_center() + ARROW_OFFSET)
+                self._update_panels()
+
+    def _handle_events(self, event_list):
+        for event in event_list:
+            if event.type == KEYDOWN:
+                if event.key == K_BACKSPACE:
+                    self._clear_selection()
+
+            elif event.type == MOUSEMOTION:
+                x, y = pygame.mouse.get_pos()
+                if self.hovered_avatar and not self.hovered_avatar.cell.get_rect().collidepoint(x, y):
+                    self._hover_avatar(self.hovered_avatar, False)
+                for unit in self.left_units + self.right_units:
+                    if unit.cell.get_rect().collidepoint(x, y):
+                        self._hover_avatar(unit, True)
+
+            elif event.type == MOUSEBUTTONDOWN:
+                for unit in self.left_units + self.right_units:
+                    x, y = pygame.mouse.get_pos()
+                    if unit.cell.get_rect().collidepoint(x, y):
+                        self._select_avatar(unit)
+
 
     def update(self, event_list, elapsed):
         for unit in self.left_units:
             unit.update(elapsed)
         for unit in self.right_units:
             unit.update(elapsed)
+
         FloatingText.update_all(elapsed)
         self.hud_panel.update(event_list)
 
-        for event in event_list:
-            if event.type == MOUSEMOTION:
-                for unit in self.left_units + self.right_units:
-                    x, y = pygame.mouse.get_pos()
-                    if unit.cell.get_rect().collidepoint(x, y):
-                        unit.cell.set_fill_color(CellColor.BLUE)
-                        unit.cell.set_border_color((150, 150, 255, 255))
-                    else:
-                        unit.cell.set_fill_color(CellColor.SHADOW)
-                        unit.cell.set_border_color(None)
+        self._handle_events(event_list)
 
-            if event.type == MOUSEBUTTONDOWN:
-                for unit in self.left_units + self.right_units:
-                    x, y = pygame.mouse.get_pos()
-                    if unit.cell.get_rect().collidepoint(x, y):
-
-
-            if event.type == KEYDOWN:
+            # if event.type == KEYDOWN:
         #         if event.key == K_a:
         #             print(self.avatar_icons[0]._get_final_position())
         #         elif event.key == K_b:
@@ -156,13 +252,12 @@ class BattleScene(GameScene):
         #             self.footman.move((100, 200))
         #         elif event.key == K_e:
         #             self.footman.sprite.start_animation(Animation.DEATH)
-                if event.key == K_f:
-                    self.left_units[0].alter_life(random.randrange(-23, -4))
+        #         if event.key == K_f:
+        #             self.left_units[0].alter_life(random.randrange(-23, -4))
         #         elif event.key == K_g:
         #             self.enemy.sprite.set_facing(Facing.RIGHT)
         #         elif event.key == K_h:
         #             self.enemy.sprite.set_facing(Facing.LEFT)
-
 
     def draw(self, screen):
         self.background.draw(screen)
@@ -172,6 +267,9 @@ class BattleScene(GameScene):
             unit.draw(screen)
         for unit in self.right_units:
             unit.draw(screen)
+
+        if self.selected_avatar:
+            self.selection_arrow.draw(screen)
 
         FloatingText.draw_all(screen)
         self.hud_panel.draw(screen)
