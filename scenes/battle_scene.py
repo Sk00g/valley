@@ -13,20 +13,8 @@ from grid import Grid, CellColor, Cell
 from sfx import SFX
 from .game_scene import GameScene
 from pygame.locals import *
+from enums import *
 
-
-class BattlePhase:
-    ORDER = "Order"
-    TARGET = "Target"
-    EXECUTION = "Execution"
-    WAITING = "Waiting"
-
-class BattleAction:
-    ATTACK = "Attack"
-    DEFEND = "Defend"
-    NEXT_UNIT = "Next Unit"
-    SKIP = "Skip"
-    CANCEL = "Cancel"
 
 ARROW_OFFSET = (4, -50)
 
@@ -39,11 +27,11 @@ class BattleScene(GameScene):
         self.selection_arrow = SFX('assets/ui/rotatingArrow.png', (7, 2), (40, 40), (0, 0), 0, 13, True, frame_speed=80)
         self.action_sfx = None
 
-        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 150), (6, 6))
+        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 150), (6, 9))
 
         self.left_units = []
         self.right_units = []
-        for i in range(2):
+        for i in range(3):
             self.left_units.append(factory.generate_avatar('footman', 12 + i))
             self.right_units.append(factory.generate_avatar('footman', 14 + i))
 
@@ -73,6 +61,16 @@ class BattleScene(GameScene):
 
         # self.grid.debug_fill()
 
+    def _avatar_is_defended_by_ally(self, avatar):
+        for ordered in self.unit_orders:
+            if ordered == avatar:
+                continue
+            order = self.unit_orders[ordered]
+            if order['order'] == BattleAction.DEFEND and order['target'] == avatar:
+                return True
+
+        return False
+
     def _avatar_has_order(self, avatar):
         return avatar in self.unit_orders
 
@@ -92,7 +90,7 @@ class BattleScene(GameScene):
         self._update_panels()
 
     def _end_execution_phase(self):
-        self.unit_orders = {}
+        self.unit_orders.clear()
         # Check for battle finish here
         self._start_turn('left')
 
@@ -102,31 +100,31 @@ class BattleScene(GameScene):
         else:
             self.selected_avatar = None
             self.current_phase = BattlePhase.EXECUTION
-            self.executor.execute(self.unit_orders, self._end_execution_phase)
+            self.executor.execute(self.unit_orders, self._end_execution_phase, self.turn_count)
             self._update_panels()
 
     def _lineup_units(self, unit_list, xcoord: int):
         size = len(unit_list)
         if size == 1:
-            unit_list[0].set_cell(self.grid[xcoord, 2])
+            unit_list[0].set_cell(self.grid[xcoord, 3])
         elif size == 2:
-            unit_list[0].set_cell(self.grid[xcoord, 1])
-            unit_list[1].set_cell(self.grid[xcoord, 3])
+            unit_list[0].set_cell(self.grid[xcoord, 2])
+            unit_list[1].set_cell(self.grid[xcoord, 4])
         elif size == 3:
             unit_list[0].set_cell(self.grid[xcoord, 1])
             unit_list[1].set_cell(self.grid[xcoord, 3])
             unit_list[2].set_cell(self.grid[xcoord, 5])
         elif size == 4:
-            unit_list[0].set_cell(self.grid[xcoord, 1])
-            unit_list[1].set_cell(self.grid[xcoord, 2])
-            unit_list[2].set_cell(self.grid[xcoord, 3])
-            unit_list[3].set_cell(self.grid[xcoord, 4])
+            unit_list[0].set_cell(self.grid[xcoord, 2])
+            unit_list[1].set_cell(self.grid[xcoord, 3])
+            unit_list[2].set_cell(self.grid[xcoord, 4])
+            unit_list[3].set_cell(self.grid[xcoord, 5])
         elif size == 5:
             for i in range(5):
-                unit_list[i].set_cell(self.grid[xcoord, i + 1])
+                unit_list[i].set_cell(self.grid[xcoord, i + 2])
         elif size == 6:
             for i in range(6):
-                unit_list[i].set_cell(self.grid[xcoord, i])
+                unit_list[i].set_cell(self.grid[xcoord, i + 1])
 
     def _arrange_units(self):
         for unit in self.left_units:
@@ -160,11 +158,18 @@ class BattleScene(GameScene):
                     self._end_turn()
                     return
 
-                index = active_units.index(self.selected_avatar)
-                index += 1 if index < (len(active_units) - 1) else -index
-                self._select_avatar(active_units[index])
-            elif action == BattleAction.SKIP:
-                self.unit_orders[self.selected_avatar] = { "order": BattleAction.SKIP }
+                if not self.selected_avatar:
+                    self._select_avatar(active_units[0])
+                else:
+                    index = active_units.index(self.selected_avatar)
+                    index += 1 if index < (len(active_units) - 1) else -index
+                    self._select_avatar(active_units[index])
+            elif action == BattleAction.GUARD:
+                FloatingText.create_new(FloatingText("guard", self.selected_avatar.sprite.get_center(), [255] * 4))
+                x, y = self.selected_avatar.sprite.get_center()
+                self.action_sfx = SFX('assets/sfx/shield.png', (10, 1), (64, 64), (x - 10, y - 50), 0, 9,
+                                      frame_speed=80)
+                self.unit_orders[self.selected_avatar] = { "order": BattleAction.GUARD, "target": None }
                 self._select_action(BattleAction.NEXT_UNIT)
 
         elif self.current_phase == BattlePhase.TARGET:
@@ -209,30 +214,41 @@ class BattleScene(GameScene):
         self.selected_avatar = None
         self._update_panels()
 
-    def _select_avatar(self, avatar):
+    def _select_avatar(self, selection):
         active_units = self.left_units if self.active == "left" else self.right_units
 
         if self.current_phase == BattlePhase.ORDER:
-            if avatar in active_units:
+            if selection in active_units:
                 self._clear_selection()
 
-                self.selected_avatar = avatar
-                avatar.cell.set_fill_color(CellColor.ORANGE)
-                avatar.cell.set_border_color(CellColor.ORANGE_HIGHLIGHT)
-                self.selection_arrow.position = (avatar.sprite.get_center() + ARROW_OFFSET)
+                self.selected_avatar = selection
+                selection.cell.set_fill_color(CellColor.ORANGE)
+                selection.cell.set_border_color(CellColor.ORANGE_HIGHLIGHT)
+                self.selection_arrow.position = (selection.sprite.get_center() + ARROW_OFFSET)
                 self._update_panels()
 
         elif self.current_phase == BattlePhase.TARGET and self.selected_action == BattleAction.ATTACK:
-            if not avatar in active_units:
-                self.unit_orders[self.selected_avatar] = { "order": BattleAction.ATTACK, "target": avatar }
-                x, y = avatar.sprite.get_center()
+            if not selection in active_units:
+                self.unit_orders[self.selected_avatar] = { "order": BattleAction.ATTACK, "target": selection }
+                x, y = selection.sprite.get_center()
                 self.action_sfx = SFX('assets/sfx/retaliate.png', (16, 1), (64, 64), (x - 10, y - 50), 0, 15, frame_speed=80)
                 self.current_phase = BattlePhase.ORDER
                 self._select_action(BattleAction.NEXT_UNIT)
+
         elif self.current_phase == BattlePhase.TARGET and self.selected_action == BattleAction.DEFEND:
-            if avatar in active_units:
-                self.unit_orders[self.selected_avatar] = {"order": BattleAction.DEFEND, "target": avatar}
-                x, y = avatar.sprite.get_center()
+            # Units that are defended by an ally can't also defend an ally
+            if self._avatar_is_defended_by_ally(self.selected_avatar) and selection != self.selected_avatar:
+                # error message
+                return
+
+            # Each unit can be only be defended by one ally at a time
+            if self._avatar_is_defended_by_ally(selection):
+                # error message
+                return
+
+            if selection in active_units:
+                self.unit_orders[self.selected_avatar] = {"order": BattleAction.DEFEND, "target": selection}
+                x, y = selection.sprite.get_center()
                 self.action_sfx = SFX('assets/sfx/shield.png', (10, 1), (64, 64), (x - 10, y - 50), 0, 9, frame_speed=80)
                 self.current_phase = BattlePhase.ORDER
                 self._select_action(BattleAction.NEXT_UNIT)
@@ -245,6 +261,9 @@ class BattleScene(GameScene):
                         self._clear_selection()
                     elif self.current_phase == BattlePhase.TARGET:
                         self._select_action(BattleAction.CANCEL)
+                elif event.key == K_TAB:
+                    if self.current_phase == BattlePhase.ORDER:
+                        self._select_action(BattleAction.NEXT_UNIT)
 
             elif event.type == MOUSEMOTION:
                 x, y = pygame.mouse.get_pos()
@@ -300,8 +319,8 @@ class BattleScene(GameScene):
 
     # --- HUD FUNCTIONALITY ---
     def _letter_from_order(self, order):
-        if order == BattleAction.SKIP:
-            return "S"
+        if order == BattleAction.GUARD:
+            return "G"
         elif order == BattleAction.DEFEND:
             return "D"
         elif order == BattleAction.ATTACK:
@@ -341,8 +360,8 @@ class BattleScene(GameScene):
                                                      lambda: self._select_action(BattleAction.NEXT_UNIT),
                                                      "n", 170))
             self.action_icons.append(suie.ActionIcon(((suie.ActionIcon.WIDTH + 2) * 3, 0),
-                                                     lambda: self._select_action(BattleAction.SKIP),
-                                                     "s", 91))
+                                                     lambda: self._select_action(BattleAction.GUARD),
+                                                     "g", 172))
 
         elif self.current_phase == BattlePhase.TARGET and self.selected_avatar:
             self.action_icons.append(suie.ActionIcon((0, 0), lambda: self._select_action(BattleAction.CANCEL), "c", 91))

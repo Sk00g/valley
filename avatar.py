@@ -6,22 +6,17 @@ from floating_text import *
 from timer import Timer
 from vector import Vector
 from sfx import SFX
+from enums import *
 
 
 # CONSTANTS
-DEFEND_BONUS = 0.50
 UNIT_CELL_OFFSET = (-25, -25)
 STACK_TEXT_OFFSET = (57, 56)
 BLOOD_OFFSET = (4, 0)
 
-class AvatarState:
-    READY = "READY"
-    DEFEND = "DEFEND"
-
 
 class Avatar:
     def __init__(self, animated_sprite: AnimatedSprite, stack_count, cell: Cell=None, **kwargs):
-        self.state = AvatarState.READY
         self.sprite = animated_sprite
         self.armor = kwargs['armor']
         self.power = kwargs['power']
@@ -46,6 +41,9 @@ class Avatar:
         self._stack_panel = suie.Panel(self.sprite.get_position() + STACK_TEXT_OFFSET, (24, 24),
                                        [border, self._stack_shadow, self._stack_number])
 
+    def is_alive(self):
+        return self._current_life > 0
+
     def set_cell(self, new_cell: Cell):
         if new_cell.occupant:
             raise Exception("Cell is already occupied!")
@@ -58,7 +56,7 @@ class Avatar:
         self.sprite.set_position(Vector(self.cell.get_position()) + UNIT_CELL_OFFSET)
 
     def get_stack_count(self):
-        return (self._current_life - 1) // self.unit_life + 1
+        return int((self._current_life - 1) // self.unit_life + 1)
 
     def die(self):
         self._current_life = 0
@@ -95,7 +93,7 @@ class Avatar:
                 self.die()
 
     # Runs attack animation and actually does damage
-    def attack_unit(self, target):
+    def attack_unit(self, target, factor=1.0):
         if self.cell.coords[0] < target.cell.coords[0] and self.sprite.get_facing() == Facing.LEFT:
             self.sprite.set_facing(Facing.RIGHT)
         elif self.cell.coords[0] > target.cell.coords[0] and self.sprite.get_facing() == Facing.RIGHT:
@@ -109,8 +107,7 @@ class Avatar:
         damage -= target.armor
 
         # Cut by defend bonus
-        if target.state == AvatarState.DEFEND:
-            damage *= DEFEND_BONUS
+        damage *= factor
 
         # Damage must be at least 1
         if damage < 1:

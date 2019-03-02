@@ -20,7 +20,7 @@ SCREEN_HEIGHT = 600
 
 # Global variables
 default_font_type = 'emulogic'
-default_font_size = 12 if sys.platform == "win32" else 18
+default_font_size = 12
 
 
 def init(source_image):

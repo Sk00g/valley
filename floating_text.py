@@ -14,14 +14,14 @@ FLOAT_SPEED = 12  # how far moved per update cycle
 class FloatingText:
     text_list = []
 
-    def __init__(self, text, pos, color, direction: Vector=DEFAULT_FLOAT_DIR):
+    def __init__(self, text, pos, color, direction: Vector=DEFAULT_FLOAT_DIR, font_size=FLOAT_FONT_SIZE):
         self._text = text
         self._position = Vector(pos)
         self._distance_travelled = 0
         self._time_alive = 0
         self._direction = Vector(direction).normalize()
 
-        font = asset_manager.load_font('emulogic', FLOAT_FONT_SIZE)
+        font = asset_manager.load_font('emulogic', font_size)
         self._surface = font.render(text, False, color)
         self._shadow = font.render(text, False, (0, 0, 0, 120))
 
