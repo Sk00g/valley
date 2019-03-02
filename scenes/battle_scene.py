@@ -39,11 +39,11 @@ class BattleScene(GameScene):
         self.selection_arrow = SFX('assets/ui/rotatingArrow.png', (7, 2), (40, 40), (0, 0), 0, 13, True, frame_speed=80)
         self.action_sfx = None
 
-        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 100), (6, 6))
+        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 150), (6, 6))
 
         self.left_units = []
         self.right_units = []
-        for i in range(3):
+        for i in range(2):
             self.left_units.append(factory.generate_avatar('footman', 12 + i))
             self.right_units.append(factory.generate_avatar('footman', 14 + i))
 
@@ -91,24 +91,26 @@ class BattleScene(GameScene):
 
         self._update_panels()
 
+    def _end_execution_phase(self):
+        self.unit_orders = {}
+        # Check for battle finish here
+        self._start_turn('left')
+
     def _end_turn(self):
         if self.active == 'left':
             self._start_turn('right')
         else:
+            self.selected_avatar = None
             self.current_phase = BattlePhase.EXECUTION
-            self.executor.execute(self.unit_orders)
-
-            self.unit_orders = {}
-
-            # Check for battle finish here
-            self._start_turn('left')
+            self.executor.execute(self.unit_orders, self._end_execution_phase)
+            self._update_panels()
 
     def _lineup_units(self, unit_list, xcoord: int):
         size = len(unit_list)
         if size == 1:
             unit_list[0].set_cell(self.grid[xcoord, 2])
         elif size == 2:
-            unit_list[0].set_cell(self.grid[xcoord, 2])
+            unit_list[0].set_cell(self.grid[xcoord, 1])
             unit_list[1].set_cell(self.grid[xcoord, 3])
         elif size == 3:
             unit_list[0].set_cell(self.grid[xcoord, 1])
@@ -267,7 +269,11 @@ class BattleScene(GameScene):
         FloatingText.update_all(elapsed)
         self.hud_panel.update(event_list)
 
-        self._handle_events(event_list)
+        if self.current_phase != BattlePhase.EXECUTION:
+            self._handle_events(event_list)
+
+        if self.current_phase == BattlePhase.EXECUTION:
+            self.executor.update(event_list, elapsed)
 
     def draw(self, screen):
         self.background.draw(screen)
@@ -285,6 +291,9 @@ class BattleScene(GameScene):
 
         FloatingText.draw_all(screen)
         self.hud_panel.draw(screen)
+
+        if self.current_phase == BattlePhase.EXECUTION:
+            self.executor.draw(screen)
 
     def cleanup(self):
         pass
