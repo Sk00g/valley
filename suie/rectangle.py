@@ -44,6 +44,7 @@ class Rectangle(suie.Element):
         self._render()
 
     def draw(self, screen: pygame.Surface):
+        # print('drawing with visible=%s (%s)' % (self.visible, str(self._get_final_position())))
         screen.blit(self._image, self._get_final_position())
 
 

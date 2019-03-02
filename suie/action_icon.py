@@ -1,6 +1,7 @@
 import sys
 import suie
 import factory
+import pygame
 
 
 class ActionIcon(suie.Panel):
@@ -15,6 +16,9 @@ class ActionIcon(suie.Panel):
     def __init__(self, position, action, hotkey, icon_index: int):
         suie.Panel.__init__(self, position, (ActionIcon.WIDTH, ActionIcon.HEIGHT))
 
+        self.hotkey = hotkey
+        self.action = action
+
         border = suie.Border((0, 0), (ActionIcon.WIDTH, ActionIcon.HEIGHT), ActionIcon.BKGR_COLOR)
         icon = factory.generate_wc_button_icon(icon_index, (ActionIcon.WIDTH - 6, ActionIcon.HEIGHT - 6), action)
         icon.set_position((6, 6))
@@ -24,11 +28,17 @@ class ActionIcon(suie.Panel):
         self.shadow = suie.Rectangle((0, 0), (ActionIcon.WIDTH + 6, ActionIcon.HEIGHT + 6), (30, 30, 30, 150))
         self.shadow.visible = False
 
-        self.add_child(border)
-        self.add_child(icon)
-        self.add_child(hotkey_rect)
-        self.add_child(hotkey_text)
-        self.add_child(self.shadow)
+        controls = [border, icon, hotkey_rect, hotkey_text, self.shadow]
+        for ctrl in controls:
+            ctrl.add_panel(self)
+
+    def update(self, event_list):
+        super().update(event_list)
+
+        for event in event_list:
+            if event.type == pygame.KEYDOWN:
+                if event.key == ord(self.hotkey):
+                    self.action()
 
     def enable(self, flag: bool):
         self.shadow.visible = not flag

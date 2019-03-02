@@ -3,8 +3,8 @@ import pygame
 import suie
 
 # CONSTANTS
-HIGHLIGHT_COLOR = (50, 220, 255)
-PRESSED_COLOR = (200, 85, 50)
+HIGHLIGHT_COLOR = (50, 220, 255, 255)
+PRESSED_COLOR = (200, 85, 50, 255)
 
 BTN_STATE_DEFAULT = 0
 BTN_STATE_MOUSEOVER = 1
@@ -27,8 +27,7 @@ class ImageButton(suie.Element):
         # Only have to generate the outlines
         pygame.draw.rect(self._highlight_surface,
                          HIGHLIGHT_COLOR,
-                         pygame.Rect((0, 0) + self.icon._size),
-                         2)
+                         pygame.Rect((0, 0) + self.icon._size))
         pygame.draw.rect(self._pressed_surface,
                          PRESSED_COLOR,
                          pygame.Rect((0, 0) + self.icon._size),
@@ -37,6 +36,10 @@ class ImageButton(suie.Element):
     def add_panel(self, new_host):
         new_host.add_child(self)
         new_host.add_child(self.icon)
+
+    def set_position(self, new_position):
+        super().set_position(new_position)
+        self.icon.set_position(new_position)
 
     def get_display_rect(self):
         return self.icon.get_display_rect()
@@ -66,14 +69,12 @@ class ImageButton(suie.Element):
 
     def draw(self, screen: pygame.Surface):
         if self._state == BTN_STATE_DEFAULT:
-            self.icon.draw(screen)
+            pass
         elif self._state == BTN_STATE_MOUSEOVER:
-            self.icon.draw(screen)
             screen.blit(self._highlight_surface, self._get_final_position())
         elif self._state == BTN_STATE_PRESSED:
             self.icon.set_position((self.icon.get_position()[0] + 1,
                                    self.icon.get_position()[1] + 2))
-            self.icon.draw(screen)
             self.icon.set_position((self.icon.get_position()[0] - 1,
                                    self.icon.get_position()[1] - 2))
             screen.blit(self._pressed_surface, self._get_final_position())

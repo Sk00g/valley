@@ -28,7 +28,7 @@ class Image(suie.Element):
         self._image = pygame.transform.scale(self._image, self._size)
 
     def get_display_rect(self):
-        return pygame.Rect(self._position + self._size)
+        return pygame.Rect(self._get_final_position() + self._size)
 
     def resize(self, new_size):
         self._size = new_size

@@ -21,7 +21,7 @@ class AvatarIcon(suie.Panel):
         icon = factory.generate_wc_icon(avatar.icon_index, (60, 62))
         icon.set_position((6, 6))
         self.life_bar = suie.ProgressBar((4, 69), (86, 11), suie.BAR_COLOR_GREEN)
-        self.action = suie.Label((AvatarIcon.WIDTH - 17, 8), "A", font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.ACTION_COLOR)
+        self.action = suie.Label((AvatarIcon.WIDTH - 17, 8), "", font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.ACTION_COLOR)
         self.power = suie.Label((AvatarIcon.WIDTH - 22, 28), str(avatar.power), font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.POWER_COLOR)
         self.stack = suie.Label((AvatarIcon.WIDTH - 22, 48), str(avatar.get_stack_count()), font_size=AvatarIcon.FONT_SIZE, color=AvatarIcon.STACK_COLOR)
         self.shadow = suie.Rectangle((0, 0), (AvatarIcon.WIDTH + 6, AvatarIcon.HEIGHT + 6), (0, 0, 0, 100))
