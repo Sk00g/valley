@@ -1,28 +1,4 @@
 """
-LOOP
-
-If all units have acted end execution
-
-Move in front of unit to strike. If defended find 'next' available defender and move in front
-If unit is dead find closest enemy unit.
-
-Wait 1 second
-
-Strike new target. Full for not defended. 50% for defended.
-Defense bonus applies every time. Only retaliate once per unit per round.
-
-Wait 500ms before retaliate
-
-Retaliate does 50% damage, reduced before armor. Retaliate only applies if unit survives the attack
-
-Wait 1 secons
-
-Move back to origin if attacker is alive
-
-Wait 1 second
-
-END LOOP
-
 loop defenders that haven't retaliated. Start with fastest
 
 Acquire target based on nearest grid enemy (will likely be defender if any)
@@ -50,7 +26,7 @@ from animated_sprite import Facing
 SCENE_SIZE = 450, 400
 GUARD_BONUS = 0.25
 # This multiplied by distance equals move duration in ms
-DISTANCE_MS_FACTOR = 10.0
+DISTANCE_MS_FACTOR = 9.5
 
 
 class BattleExecutor:
@@ -118,6 +94,11 @@ class BattleExecutor:
         return len([unit for unit in self.left_units if unit.is_alive()]) < 1 or\
                len([unit for unit in self.right_units if unit.is_alive()]) < 1
 
+    def get_defender_of(self, avatar):
+        for unit in self.defenders:
+            if self.orders[unit]['target'] == avatar:
+                return unit
+
     def execute(self, unit_orders, end_action, turn_count):
         self.end_action = end_action
         self.grid.reset_cell_colors()
@@ -154,6 +135,12 @@ class BattleExecutor:
             self.stage7()
             return
 
+        if self.count > 0:
+            old_attacker = self.attackers[self.count - 1]
+            facing = Facing.RIGHT if old_attacker in self.left_units else Facing.LEFT
+            print('set facing to', facing)
+            old_attacker.sprite.set_facing(facing)
+
         self.count += 1
 
         if self.count > len(self.attackers):
@@ -168,19 +155,19 @@ class BattleExecutor:
         if not target.is_alive():
             # find closest
             pass
-        elif target in self.defendees:
+        elif target in self.defendees and self.get_defender_of(target).is_alive():
             tarx += 1 * sign
 
         tcell = self.grid[tarx + 1 * sign, tary]
         dist = self.grid.get_pixel_distance(attacker.cell, tcell)
-        print('dist:', dist)
         attacker.move(tcell)
-        print('waiting %dms' % int(dist * DISTANCE_MS_FACTOR))
         Timer.create_new(Timer(int(dist * DISTANCE_MS_FACTOR), self.do_attack1))
 
     def do_attack1(self):
         attacker = self.attackers[self.count - 1]
-        target = self.orders[attacker]['target']
+        sign = 1 if attacker in self.left_units else -1
+        cellx, celly = attacker.cell.coords
+        target = self.grid[cellx + 1 * sign, celly].occupant
 
         damage_factor = 1.0
         if target in self.guarders:
@@ -190,31 +177,36 @@ class BattleExecutor:
         if target in self.defenders:
             Timer.create_new(Timer(750, lambda: self.retaliate(target, attacker)))
         else:
-            Timer.create_new(Timer(750, self.finish_attack))
+            Timer.create_new(Timer(1000, self.finish_attack))
 
     def retaliate(self, retaliator, target):
-        retaliator.attack_unit(target, 0.5)
+        if retaliator.is_alive() and target.is_alive():
+            retaliator.attack_unit(target, 0.5)
+
         Timer.create_new(Timer(750, self.finish_attack))
 
     def finish_attack(self):
         attacker = self.attackers[self.count - 1]
-        cellx, celly = attacker.cell.coords
-        sign = 1 if attacker in self.left_units else -1
+        if attacker.is_alive():
+            cellx, celly = self.original_cells[attacker].coords
+            sign = 1 if attacker in self.left_units else -1
 
-        tcell = self.grid[cellx + 1 * sign, celly]
-        dist = self.grid.get_pixel_distance(attacker.cell, tcell)
-        attacker.move(tcell)
-        print('waiting %dms' % int(dist * DISTANCE_MS_FACTOR))
-        Timer.create_new(Timer(int(dist * DISTANCE_MS_FACTOR), self.next_attack))
+            tcell = self.grid[cellx + 1 * sign, celly]
+            dist = self.grid.get_pixel_distance(attacker.cell, tcell)
+            attacker.move(tcell)
+            Timer.create_new(Timer(int(dist * DISTANCE_MS_FACTOR), self.next_attack))
+        else:
+            Timer.create_new(Timer(500, self.next_attack))
 
     def stage2(self):
-        self.stage7()
+        # defending people who haven't been attacked can go now
+        Timer.create_new(Timer(2000, self.stage7))
 
     def stage7(self):
         for avatar in self.original_cells:
-            if avatar.cell != self.original_cells[avatar]:
+            if avatar.is_alive() and avatar.cell != self.original_cells[avatar]:
                 avatar.move(self.original_cells[avatar])
-        Timer.create_new(Timer(2000, self.final_stage))
+        Timer.create_new(Timer(500, self.final_stage))
 
     def final_stage(self):
         for avatar in self.left_units:

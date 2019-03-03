@@ -77,6 +77,7 @@ class Avatar:
         if self._current_life + value < 0:
             value = -self._current_life
 
+        value = int(value)
         color = (230, 40, 40) if value < 0 else (50, 230, 50)
         direction = Vector(random.random(), -random.random())
         FloatingText.create_new(FloatingText(str(value), self.sprite.get_center(), color, direction))

@@ -31,6 +31,7 @@ class BattleScene(GameScene):
 
         self.left_units = []
         self.right_units = []
+        self.dead_units = []
         for i in range(3):
             self.left_units.append(factory.generate_avatar('footman', 12 + i))
             self.right_units.append(factory.generate_avatar('footman', 14 + i))
@@ -91,6 +92,16 @@ class BattleScene(GameScene):
 
     def _end_execution_phase(self):
         self.unit_orders.clear()
+
+        for unit in self.left_units:
+            if not unit.is_alive():
+                self.left_units.remove(unit)
+                self.dead_units.append(unit)
+        for unit in self.right_units:
+            if not unit.is_alive():
+                self.right_units.remove(unit)
+                self.dead_units.append(unit)
+
         # Check for battle finish here
         self._start_turn('left')
 
@@ -246,6 +257,11 @@ class BattleScene(GameScene):
                 # error message
                 return
 
+            # Cannot defend an ally that is also defending a different ally
+            if selection in self.unit_orders and self.unit_orders[selection]['order'] == BattleAction.DEFEND:
+                # error message
+                return
+
             if selection in active_units:
                 self.unit_orders[self.selected_avatar] = {"order": BattleAction.DEFEND, "target": selection}
                 x, y = selection.sprite.get_center()
@@ -298,9 +314,10 @@ class BattleScene(GameScene):
         self.background.draw(screen)
         self.grid.draw(screen)
 
-        for unit in self.left_units:
+        for unit in self.dead_units:
             unit.draw(screen)
-        for unit in self.right_units:
+
+        for unit in self.left_units + self.right_units:
             unit.draw(screen)
 
         if self.selected_avatar:
