@@ -24,9 +24,12 @@ from animated_sprite import Facing
 
 
 SCENE_SIZE = 450, 400
+# This % damage reduced when unit is Guarding
 GUARD_BONUS = 0.25
 # This multiplied by distance equals move duration in ms
-DISTANCE_MS_FACTOR = 9.5
+DISTANCE_MS_FACTOR = 9.3
+# Damage dealt by defending unit that is attacking
+DEFEND_ATTACK_FACTOR = 0.5
 
 
 class BattleExecutor:
@@ -57,6 +60,15 @@ class BattleExecutor:
 
         # Ordered list of units who are selfish
         self.guarders = []
+
+        # Unordered list of units who have been attacked
+        self.attacked = []
+
+        # Dict of defender's defensive cells
+        self.defensive_cells = {}
+
+        # List of defenders that weren't attacked and so will do a 50% attack
+        self.attacking_defenders = []
 
     def _generate_shadows(self):
         size = (suie.SCREEN_WIDTH - SCENE_SIZE[0]) // 2, (suie.SCREEN_HEIGHT - SCENE_SIZE[1]) // 2 + 2
@@ -99,6 +111,19 @@ class BattleExecutor:
             if self.orders[unit]['target'] == avatar:
                 return unit
 
+    def get_nearest_enemy(self, avatar):
+        enemies = self.left_units if avatar in self.right_units else self.right_units
+        nearest = None
+        nearest_path = 100
+        for unit in enemies:
+            if unit.is_alive():
+                dist = self.grid.get_grid_distance(avatar.cell, unit.cell)
+                if dist < nearest_path:
+                    nearest_path = dist
+                    nearest = unit
+
+        return nearest
+
     def execute(self, unit_orders, end_action, turn_count):
         self.end_action = end_action
         self.grid.reset_cell_colors()
@@ -125,6 +150,10 @@ class BattleExecutor:
             sign = 1 if defender in self.left_units else -1
             defender.move(self.grid[cellx + 1 * sign, celly])
 
+        if not self.attackers and not self.defenders:
+            self.final_stage()
+            return
+
         if len(self.defenders) > 0:
             Timer.create_new(Timer(2000, self.next_attack))
         else:
@@ -132,13 +161,12 @@ class BattleExecutor:
 
     def next_attack(self):
         if self.either_team_is_dead():
-            self.stage7()
+            self.stage3()
             return
 
         if self.count > 0:
             old_attacker = self.attackers[self.count - 1]
             facing = Facing.RIGHT if old_attacker in self.left_units else Facing.LEFT
-            print('set facing to', facing)
             old_attacker.sprite.set_facing(facing)
 
         self.count += 1
@@ -153,8 +181,7 @@ class BattleExecutor:
         sign = 1 if attacker in self.right_units else -1
 
         if not target.is_alive():
-            # find closest
-            pass
+            tarx, tary = self.get_nearest_enemy(attacker).cell.coords
         elif target in self.defendees and self.get_defender_of(target).is_alive():
             tarx += 1 * sign
 
@@ -173,6 +200,7 @@ class BattleExecutor:
         if target in self.guarders:
             damage_factor -= GUARD_BONUS
         attacker.attack_unit(target, damage_factor)
+        self.attacked.append(target)
 
         if target in self.defenders:
             Timer.create_new(Timer(750, lambda: self.retaliate(target, attacker)))
@@ -182,6 +210,7 @@ class BattleExecutor:
     def retaliate(self, retaliator, target):
         if retaliator.is_alive() and target.is_alive():
             retaliator.attack_unit(target, 0.5)
+            self.attacked.append(target)
 
         Timer.create_new(Timer(750, self.finish_attack))
 
@@ -199,10 +228,63 @@ class BattleExecutor:
             Timer.create_new(Timer(500, self.next_attack))
 
     def stage2(self):
-        # defending people who haven't been attacked can go now
-        Timer.create_new(Timer(2000, self.stage7))
+        self.attacking_defenders = [unit for unit in self.defenders if unit not in self.attacked]
 
-    def stage7(self):
+        if len(self.attacking_defenders) > 0:
+            self.count = 0
+            self.next_defender_attack()
+        else:
+            self.stage3()
+
+    def next_defender_attack(self):
+        self.count += 1
+
+        if self.count > len(self.attacking_defenders):
+            self.stage3()
+            return
+
+        defender = self.attacking_defenders[self.count - 1]
+
+        self.defensive_cells[defender] = defender.cell
+
+        target = self.get_nearest_enemy(defender)
+        tarx, tary = target.cell.coords
+        sign = 1 if target in self.left_units else -1
+
+        tcell = self.grid[tarx + 1 * sign, tary]
+        dist = self.grid.get_pixel_distance(defender.cell, tcell)
+        defender.move(tcell)
+
+        timeout = int(dist * DISTANCE_MS_FACTOR)
+        Timer.create_new(Timer(timeout, self.do_defender_attack1))
+
+    def do_defender_attack1(self):
+        defender = self.attacking_defenders[self.count - 1]
+        sign = 1 if defender in self.left_units else -1
+        cellx, celly = defender.cell.coords
+        target = self.grid[cellx + 1 * sign, celly].occupant
+
+        damage_factor = DEFEND_ATTACK_FACTOR
+        if target in self.guarders:
+            damage_factor -= GUARD_BONUS
+        defender.attack_unit(target, damage_factor)
+
+        Timer.create_new(Timer(750, self.finish_defend_attack))
+
+    def finish_defend_attack(self):
+        defender = self.attacking_defenders[self.count - 1]
+
+        tcell = self.defensive_cells[defender]
+        dist = self.grid.get_pixel_distance(defender.cell, tcell)
+        defender.move(tcell)
+        Timer.create_new(Timer(int(dist * DISTANCE_MS_FACTOR), self.about_face))
+        Timer.create_new(Timer(int(dist * DISTANCE_MS_FACTOR) + 20, self.next_defender_attack))
+
+    def about_face(self):
+        defender = self.attacking_defenders[self.count - 1]
+        defender.sprite.set_facing(Facing.RIGHT if defender in self.left_units else Facing.LEFT)
+
+    def stage3(self):
         for avatar in self.original_cells:
             if avatar.is_alive() and avatar.cell != self.original_cells[avatar]:
                 avatar.move(self.original_cells[avatar])
@@ -220,6 +302,9 @@ class BattleExecutor:
         self.defendees.clear()
         self.attackers.clear()
         self.guarders.clear()
+        self.attacked.clear()
+        self.defensive_cells.clear()
+        self.attacking_defenders.clear()
         self.count = 0
 
     def update(self, event_list, elapsed):

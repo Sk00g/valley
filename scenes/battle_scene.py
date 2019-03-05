@@ -27,14 +27,14 @@ class BattleScene(GameScene):
         self.selection_arrow = SFX('assets/ui/rotatingArrow.png', (7, 2), (40, 40), (0, 0), 0, 13, True, frame_speed=80)
         self.action_sfx = None
 
-        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 144, 150), (6, 9))
+        self.grid = Grid(Vector(suie.SCREEN_WIDTH // 2 - 168, 150), (7, 9))
 
         self.left_units = []
         self.right_units = []
         self.dead_units = []
         for i in range(3):
             self.left_units.append(factory.generate_avatar('footman', 12 + i))
-            self.right_units.append(factory.generate_avatar('footman', 14 + i))
+            self.right_units.append(factory.generate_avatar('archer', 14 + i))
 
         self.executor = BattleExecutor(self.left_units, self.right_units, self.grid)
 
@@ -144,7 +144,7 @@ class BattleScene(GameScene):
             unit.sprite.set_facing(Facing.LEFT)
 
         self._lineup_units(self.left_units, 0)
-        self._lineup_units(self.right_units, 5)
+        self._lineup_units(self.right_units, 6)
 
     def _select_action(self, action):
         active_units = self.left_units if self.active == "left" else self.right_units

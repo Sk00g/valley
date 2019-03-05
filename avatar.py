@@ -105,7 +105,7 @@ class Avatar:
         damage *= self.get_stack_count()
 
         # Cut by armor
-        damage -= target.armor
+        damage -= target.armor * self.get_stack_count()
 
         # Cut by defend bonus
         damage *= factor

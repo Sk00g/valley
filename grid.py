@@ -94,9 +94,9 @@ class Grid:
         epos = end.get_position()
         return math.sqrt((spos[0] - epos[0]) * (spos[0] - epos[0]) + (spos[1] - epos[1]) * (spos[1] - epos[1]))
 
-    def get_distance(self, start: Cell, end: Cell, pathable=False):
+    def get_grid_distance(self, start: Cell, end: Cell, pathable=False):
         if not pathable:
-            return math.fabs(start[0] - end[0]) + math.fabs(start[1] - end[1])
+            return math.fabs(start.coords[0] - end.coords[0]) + math.fabs(start.coords[1] - end.coords[1])
         else:
             return len(self.find_path(start, end)) - 1
 
